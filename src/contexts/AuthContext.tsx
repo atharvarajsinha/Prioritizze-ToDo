@@ -21,25 +21,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      if (token) {
-        try {
-          const response = await userApi.getProfile();
-          if (response.data.success) {
-            setUser(response.data.data);
-          }
-        } catch (error) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('role');
-          setToken(null);
-          setRole(null);
+  const initAuth = async () => {
+    if (token && !user) {
+      try {
+        const response = await userApi.getProfile();
+        if (response.data.success) {
+          setUser(response.data.data);
         }
+      } catch (error) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        setToken(null);
+        setRole(null);
       }
-      setIsLoading(false);
-    };
+    }
+    setIsLoading(false);
+  };
 
-    initAuth();
-  }, [token]);
+  initAuth();
+}, [token]);
+
 
   const login = (authToken: string, userData: User) => {
     localStorage.setItem('token', authToken);

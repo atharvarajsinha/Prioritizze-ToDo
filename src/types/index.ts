@@ -53,6 +53,17 @@ export interface Feedback {
   status: 'open' | 'in_progress' | 'resolved';
 }
 
+export interface Reminder {
+  id: string;
+  taskId: string;
+  reminderDateTime: string;
+  message?: string;
+  isEmailNotification: boolean;
+  isTriggered: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AuthResponse {
   token: string;
   user: User;

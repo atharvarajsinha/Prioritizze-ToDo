@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSquare, Target, Users, Zap, Heart } from 'lucide-react';
+import { Target, Users, Zap, Heart } from 'lucide-react';
 import { Layout } from '../components/common/Layout';
 
 export function AboutPage() {
@@ -8,7 +8,7 @@ export function AboutPage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 text-white py-20">
         <div className="container mx-auto px-4 text-center">
-          <CheckSquare className="h-16 w-16 mx-auto mb-6" />
+          <img src="/logo.svg" alt="Prioritizze" className="h-16 w-16 mx-auto mb-6" />
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             About Prioritizze
           </h1>

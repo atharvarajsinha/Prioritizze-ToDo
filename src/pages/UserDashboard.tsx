@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Filter, Search, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Filter, Search, Calendar, Clock, AlertCircle, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Layout } from '../components/common/Layout';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { TaskCard } from '../components/dashboard/TaskCard';
 import { TaskForm } from '../components/dashboard/TaskForm';
+import { ReminderForm } from '../components/dashboard/ReminderForm';
 import { useApi } from '../hooks/useApi';
-import { tasksApi, categoriesApi } from '../services/api';
-import type { Task, Category } from '../types';
+import { tasksApi, categoriesApi, remindersApi } from '../services/api';
+import type { Task, Category, Reminder } from '../types';
 
 export function UserDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [isReminderFormOpen, setIsReminderFormOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     status: '',
@@ -25,8 +29,10 @@ export function UserDashboard() {
   const tasksQuery = useApi<Task[]>();
   const categoriesQuery = useApi<Category[]>();
   const taskMutation = useApi<Task>();
+  const reminderMutation = useApi<Reminder>();
   const dueTasks = useApi<Task[]>();
   const recurringTasks = useApi<Task[]>();
+  const upcomingReminders = useApi<Reminder[]>();
 
   useEffect(() => {
     loadData();
@@ -34,11 +40,12 @@ export function UserDashboard() {
 
   const loadData = async () => {
     try {
-      const [tasksResponse, categoriesResponse, dueResponse, recurringResponse] = await Promise.all([
+      const [tasksResponse, categoriesResponse, dueResponse, recurringResponse, remindersResponse] = await Promise.all([
         tasksQuery.execute(() => tasksApi.getTasks()),
         categoriesQuery.execute(() => categoriesApi.getCategories()),
         dueTasks.execute(() => tasksApi.getDueTasks()),
         recurringTasks.execute(() => tasksApi.getRecurringTasks()),
+        upcomingReminders.execute(() => remindersApi.getUpcomingReminders()),
       ]);
 
       if (tasksResponse.data.success) {
@@ -46,6 +53,9 @@ export function UserDashboard() {
       }
       if (categoriesResponse.data.success) {
         setCategories(categoriesResponse.data.data);
+      }
+      if (remindersResponse.data.success) {
+        setReminders(remindersResponse.data.data);
       }
     } catch (error) {
       toast.error('Failed to load data');
@@ -111,6 +121,69 @@ export function UserDashboard() {
     }
   };
 
+  const handleCreateReminder = async (data: any) => {
+    try {
+      const reminderDateTime = `${data.reminderDate}T${data.reminderTime}:00`;
+      const reminderData = {
+        ...data,
+        reminderDateTime,
+      };
+      delete reminderData.reminderDate;
+      delete reminderData.reminderTime;
+
+      const response = await reminderMutation.execute(() => 
+        remindersApi.createReminder(reminderData)
+      );
+      if (response.data.success) {
+        setReminders(prev => [...prev, response.data.data]);
+        setIsReminderFormOpen(false);
+        toast.success('Reminder created successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to create reminder');
+    }
+  };
+
+  const handleUpdateReminder = async (data: any) => {
+    if (!selectedReminder) return;
+    
+    try {
+      const reminderDateTime = `${data.reminderDate}T${data.reminderTime}:00`;
+      const reminderData = {
+        ...data,
+        reminderDateTime,
+      };
+      delete reminderData.reminderDate;
+      delete reminderData.reminderTime;
+
+      const response = await reminderMutation.execute(() => 
+        remindersApi.updateReminder(selectedReminder.id, reminderData)
+      );
+      if (response.data.success) {
+        setReminders(prev => prev.map(reminder => 
+          reminder.id === selectedReminder.id ? response.data.data : reminder
+        ));
+        setSelectedReminder(null);
+        setIsReminderFormOpen(false);
+        toast.success('Reminder updated successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to update reminder');
+    }
+  };
+
+  const handleDeleteReminder = async (reminder: Reminder) => {
+    if (!confirm('Are you sure you want to delete this reminder?')) return;
+
+    try {
+      await remindersApi.deleteReminder(reminder.id);
+      setReminders(prev => prev.filter(r => r.id !== reminder.id));
+      toast.success('Reminder deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete reminder');
+    }
+  };
+
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(filters.search.toLowerCase()) ||
       task.description?.toLowerCase().includes(filters.search.toLowerCase());
@@ -140,13 +213,25 @@ export function UserDashboard() {
               Manage your tasks and stay organized
             </p>
           </div>
-          <Button onClick={() => {
-            setSelectedTask(null);
-            setIsTaskFormOpen(true);
-          }}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Task
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setSelectedReminder(null);
+                setIsReminderFormOpen(true);
+              }}
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              Add Reminder
+            </Button>
+            <Button onClick={() => {
+              setSelectedTask(null);
+              setIsTaskFormOpen(true);
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -184,6 +269,18 @@ export function UserDashboard() {
               <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mr-2" />
               <span className="font-medium text-red-800 dark:text-red-200">
                 You have {dueTasks.data.length} task(s) due soon
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Reminders Alert */}
+        {reminders.length > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
+              <span className="font-medium text-blue-800 dark:text-blue-200">
+                You have {reminders.length} upcoming reminder(s)
               </span>
             </div>
           </div>
@@ -337,6 +434,19 @@ export function UserDashboard() {
           task={selectedTask || undefined}
           categories={categories}
           isLoading={taskMutation.loading}
+        />
+
+        {/* Reminder Form Modal */}
+        <ReminderForm
+          isOpen={isReminderFormOpen}
+          onClose={() => {
+            setIsReminderFormOpen(false);
+            setSelectedReminder(null);
+          }}
+          onSubmit={selectedReminder ? handleUpdateReminder : handleCreateReminder}
+          reminder={selectedReminder || undefined}
+          tasks={tasks.map(task => ({ id: task.id, title: task.title }))}
+          isLoading={reminderMutation.loading}
         />
       </div>
     </Layout>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckSquare, Users, Target, MessageSquare, TrendingUp, CheckCircle, Calendar, Bell } from 'lucide-react';
+import { Users, Target, MessageSquare, TrendingUp, CheckCircle, Calendar, Bell } from 'lucide-react';
 import { Layout } from '../components/common/Layout';
 import { Button } from '../components/ui/Button';
 import { useApi } from '../hooks/useApi';
@@ -25,7 +25,7 @@ export function HomePage() {
         <div className="container relative mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex justify-center mb-6">
-              <CheckSquare className="h-16 w-16 text-white" />
+              <img src="/logo.svg" alt="Prioritizze" className="h-16 w-16" />
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
               Organize Your Life with{' '}
@@ -58,7 +58,7 @@ export function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Trusted by Thousands
+              Trusted by Many
             </h2>
             <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               Join our growing community of productive individuals and teams

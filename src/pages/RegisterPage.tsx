@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import toast from 'react-hot-toast';
-import { CheckSquare } from 'lucide-react';
 import { Layout } from '../components/common/Layout';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -69,7 +68,7 @@ export function RegisterPage() {
       <div className="min-h-screen flex items-center justify-center py-12 px-4">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
-            <CheckSquare className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <img src="/logo.svg" alt="Prioritizze" className="h-12 w-12 mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Create Account
             </h1>

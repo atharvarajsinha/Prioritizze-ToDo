@@ -1,5 +1,4 @@
 import React from 'react';
-import { CheckSquare } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -9,7 +8,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col items-center justify-center space-y-4">
           <div className="flex items-center space-x-2">
-            <CheckSquare className="h-6 w-6 text-blue-600" />
+            <img src="/logo.svg" alt="Prioritizze" className="h-6 w-6" />
             <span className="text-lg font-bold text-gray-900 dark:text-white">
               Prioritizze
             </span>

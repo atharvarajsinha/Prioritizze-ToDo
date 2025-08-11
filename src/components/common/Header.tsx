@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Moon, Sun, User, LogOut, CheckSquare } from 'lucide-react';
+import { Moon, Sun, User, LogOut } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
@@ -15,7 +15,7 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link to={ROUTES.HOME} className="flex items-center space-x-2">
-            <CheckSquare className="h-8 w-8 text-blue-600" />
+            <img src="/logo.svg" alt="Prioritizze" className="h-8 w-8" />
             <span className="text-xl font-bold text-gray-900 dark:text-white">
               Prioritizze
             </span>
