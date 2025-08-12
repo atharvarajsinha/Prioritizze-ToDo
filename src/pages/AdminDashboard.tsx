@@ -27,8 +27,8 @@ export function AdminDashboard() {
     try {
       const response = await testimonialsQuery.execute(() => testimonialsApi.getTestimonials());
       console.log(response.data);
-      if (response.data.results.success) {
-        setTestimonials(response.data.results.data);
+      if (response.data.success) {
+        setTestimonials(response.data.data);
       }
     } catch (error) {
       toast.error('Failed to load testimonials');

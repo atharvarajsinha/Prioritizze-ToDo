@@ -50,7 +50,6 @@ export interface Feedback {
   type: 'bug' | 'feature' | 'feedback';
   title: string;
   description: string;
-  status: 'open' | 'in_progress' | 'resolved';
 }
 
 export interface Reminder {

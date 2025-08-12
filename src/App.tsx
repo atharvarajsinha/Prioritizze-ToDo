@@ -11,6 +11,10 @@ import { UserDashboard } from './pages/UserDashboard';
 import { ProfilePage } from './pages/ProfilePage';
 import { AboutPage } from './pages/AboutPage';
 import { FeedbackPage } from './pages/FeedbackPage';
+import { TasksPage } from './pages/TasksPage';
+import { CategoriesPage } from './pages/CategoriesPage';
+import { RemindersPage } from './pages/RemindersPage';
+import { AdminFeedbackPage } from './pages/AdminFeedbackPage';
 import { ROUTES } from './utils/constants';
 
 function ProtectedRoute({ 
@@ -80,7 +84,7 @@ function AppRoutes() {
       <Route path={ROUTES.ABOUT} element={<AboutPage />} />
       <Route path={ROUTES.FEEDBACK} element={<FeedbackPage />} />
 
-      {/* Protected Routes */}
+      {/* Admin Routes */}
       <Route 
         path={ROUTES.ADMIN_DASHBOARD} 
         element={
@@ -90,6 +94,16 @@ function AppRoutes() {
         } 
       />
       <Route 
+        path="/admin/feedback" 
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminFeedbackPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* User Routes */}
+      <Route 
         path={ROUTES.USER_DASHBOARD} 
         element={
           <ProtectedRoute allowedRoles={['user']}>
@@ -97,6 +111,32 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/tasks" 
+        element={
+          <ProtectedRoute allowedRoles={['user']}>
+            <TasksPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/categories" 
+        element={
+          <ProtectedRoute allowedRoles={['user']}>
+            <CategoriesPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/reminders" 
+        element={
+          <ProtectedRoute allowedRoles={['user']}>
+            <RemindersPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Shared Protected Routes */}
       <Route 
         path={ROUTES.PROFILE} 
         element={
