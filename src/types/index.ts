@@ -47,9 +47,13 @@ export interface Testimonial {
 
 export interface Feedback {
   id: string;
+  userId?: string;
   type: 'bug' | 'feature' | 'feedback';
   title: string;
   description: string;
+  status: 'open' | 'in_progress' | 'resolved';
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Reminder {

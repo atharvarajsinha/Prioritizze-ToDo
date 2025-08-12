@@ -54,6 +54,13 @@ export function AdminDashboard() {
     if (!selectedTestimonial) return;
     
     try {
+      // First fetch the full testimonial details
+      const detailResponse = await testimonialsApi.getTestimonial(selectedTestimonial.id);
+      if (!detailResponse.data.success) {
+        toast.error('Failed to fetch testimonial details');
+        return;
+      }
+      
       const response = await testimonialMutation.execute(() => 
         testimonialsApi.updateTestimonial(selectedTestimonial.id, data)
       );
@@ -217,8 +224,19 @@ export function AdminDashboard() {
                 key={testimonial.id}
                 testimonial={testimonial}
                 onEdit={(testimonial) => {
-                  setSelectedTestimonial(testimonial);
-                  setIsTestimonialFormOpen(true);
+                  // Fetch full testimonial details before editing
+                  testimonialsApi.getTestimonial(testimonial.id)
+                    .then(response => {
+                      if (response.data.success) {
+                        setSelectedTestimonial(response.data.data);
+                        setIsTestimonialFormOpen(true);
+                      } else {
+                        toast.error('Failed to fetch testimonial details');
+                      }
+                    })
+                    .catch(() => {
+                      toast.error('Failed to fetch testimonial details');
+                    });
                 }}
                 onDelete={handleDeleteTestimonial}
               />

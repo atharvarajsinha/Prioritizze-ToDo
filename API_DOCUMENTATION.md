@@ -109,7 +109,7 @@ CREATE TABLE reminders (
 
 ### Authentication
 
-#### POST /auth/register
+#### POST /auth/register/
 Register a new user account.
 
 **Request Body:**
@@ -142,7 +142,7 @@ Register a new user account.
 }
 ```
 
-#### POST /auth/login
+#### POST /auth/login/
 Authenticate user and get access token.
 
 **Request Body:**
@@ -173,7 +173,7 @@ Authenticate user and get access token.
 }
 ```
 
-#### POST /auth/logout
+#### POST /auth/logout/
 Logout user and invalidate token.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -190,7 +190,7 @@ Logout user and invalidate token.
 
 ### User Management
 
-#### GET /user/profile
+#### GET /profile/
 Get current user profile.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -211,7 +211,7 @@ Get current user profile.
 }
 ```
 
-#### PUT /user/profile
+#### PUT /profile/update/
 Update user profile.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -242,7 +242,7 @@ Update user profile.
 }
 ```
 
-#### POST /user/avatar
+#### POST /profile/avatar/
 Upload user avatar.
 
 **Headers:** 
@@ -265,7 +265,7 @@ avatar: <file>
 }
 ```
 
-#### GET /user/stats
+#### GET /user/stats/
 Get user task statistics.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -283,7 +283,8 @@ Get user task statistics.
         "id": "uuid",
         "title": "Complete project",
         "status": "completed",
-        "createdAt": "2024-01-01T00:00:00Z"
+        "createdAt": "2024-01-01T00:00:00Z",
+        "updatedAt": "2024-01-02T00:00:00Z"
       }
     ]
   }
@@ -294,7 +295,7 @@ Get user task statistics.
 
 ### Tasks
 
-#### GET /tasks
+#### GET /tasks/
 Get user tasks with optional filters.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -303,6 +304,11 @@ Get user tasks with optional filters.
 - `status` (optional): Filter by status (todo, in_progress, completed)
 - `category` (optional): Filter by category ID
 - `priority` (optional): Filter by priority (low, medium, high)
+
+**Example Request:**
+```
+GET /tasks/?status=todo&priority=high
+```
 
 **Response:**
 ```json
@@ -326,10 +332,15 @@ Get user tasks with optional filters.
 }
 ```
 
-#### GET /tasks/:id
+#### GET /tasks/{id}/
 Get specific task by ID.
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Example Request:**
+```
+GET /tasks/550e8400-e29b-41d4-a716-446655440000/
+```
 
 **Response:**
 ```json
@@ -351,7 +362,7 @@ Get specific task by ID.
 }
 ```
 
-#### POST /tasks
+#### POST /tasks/create/
 Create a new task.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -390,10 +401,15 @@ Create a new task.
 }
 ```
 
-#### PUT /tasks/:id
+#### PUT /tasks/{id}/update/
 Update an existing task.
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Example Request:**
+```
+PUT /tasks/550e8400-e29b-41d4-a716-446655440000/update/
+```
 
 **Request Body:**
 ```json
@@ -425,10 +441,15 @@ Update an existing task.
 }
 ```
 
-#### DELETE /tasks/:id
+#### DELETE /tasks/{id}/delete/
 Delete a task.
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Example Request:**
+```
+DELETE /tasks/550e8400-e29b-41d4-a716-446655440000/delete/
+```
 
 **Response:**
 ```json
@@ -438,7 +459,7 @@ Delete a task.
 }
 ```
 
-#### GET /tasks/due
+#### GET /tasks/due/
 Get tasks that are due soon.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -459,7 +480,7 @@ Get tasks that are due soon.
 }
 ```
 
-#### GET /tasks/recurring
+#### GET /tasks/recurring/
 Get recurring tasks.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -474,7 +495,9 @@ Get recurring tasks.
       "title": "Weekly team meeting",
       "isRecurring": true,
       "recurringType": "weekly",
-      "status": "todo"
+      "status": "todo",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
     }
   ]
 }
@@ -484,7 +507,7 @@ Get recurring tasks.
 
 ### Categories
 
-#### GET /categories
+#### GET /categories/
 Get user categories.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -504,7 +527,30 @@ Get user categories.
 }
 ```
 
-#### POST /categories
+#### GET /categories/{id}/
+Get specific category by ID.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Example Request:**
+```
+GET /categories/550e8400-e29b-41d4-a716-446655440000/
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "name": "Work",
+    "color": "#3B82F6",
+    "taskCount": 5
+  }
+}
+```
+
+#### POST /categories/create/
 Create a new category.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -531,10 +577,15 @@ Create a new category.
 }
 ```
 
-#### PUT /categories/:id
+#### PUT /categories/{id}/update/
 Update a category.
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Example Request:**
+```
+PUT /categories/550e8400-e29b-41d4-a716-446655440000/update/
+```
 
 **Request Body:**
 ```json
@@ -558,10 +609,15 @@ Update a category.
 }
 ```
 
-#### DELETE /categories/:id
+#### DELETE /categories/{id}/delete/
 Delete a category.
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Example Request:**
+```
+DELETE /categories/550e8400-e29b-41d4-a716-446655440000/delete/
+```
 
 **Response:**
 ```json
@@ -575,13 +631,18 @@ Delete a category.
 
 ### Reminders
 
-#### GET /reminders
+#### GET /reminders/
 Get user reminders with optional task filter.
 
 **Headers:** `Authorization: Bearer <token>`
 
 **Query Parameters:**
 - `taskId` (optional): Filter by task ID
+
+**Example Request:**
+```
+GET /reminders/?taskId=550e8400-e29b-41d4-a716-446655440000
+```
 
 **Response:**
 ```json
@@ -602,7 +663,7 @@ Get user reminders with optional task filter.
 }
 ```
 
-#### POST /reminders
+#### POST /reminders/create/
 Create a new reminder.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -635,10 +696,15 @@ Create a new reminder.
 }
 ```
 
-#### PUT /reminders/:id
+#### PUT /reminders/{id}/update/
 Update a reminder.
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Example Request:**
+```
+PUT /reminders/550e8400-e29b-41d4-a716-446655440000/update/
+```
 
 **Request Body:**
 ```json
@@ -667,10 +733,15 @@ Update a reminder.
 }
 ```
 
-#### DELETE /reminders/:id
+#### DELETE /reminders/{id}/delete/
 Delete a reminder.
 
 **Headers:** `Authorization: Bearer <token>`
+
+**Example Request:**
+```
+DELETE /reminders/550e8400-e29b-41d4-a716-446655440000/delete/
+```
 
 **Response:**
 ```json
@@ -680,7 +751,7 @@ Delete a reminder.
 }
 ```
 
-#### GET /reminders/upcoming
+#### GET /reminders/upcoming/
 Get upcoming reminders for the user.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -710,7 +781,7 @@ Get upcoming reminders for the user.
 
 ### Testimonials
 
-#### GET /testimonials
+#### GET /testimonials/
 Get all active testimonials (public endpoint).
 
 **Response:**
@@ -729,7 +800,34 @@ Get all active testimonials (public endpoint).
 }
 ```
 
-#### POST /testimonials
+#### GET /testimonials/{id}/
+Get specific testimonial by ID (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Example Request:**
+```
+GET /testimonials/550e8400-e29b-41d4-a716-446655440000/
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "name": "Sarah Johnson",
+    "role": "Product Manager",
+    "content": "Prioritizze has transformed how I manage my daily tasks. The interface is intuitive and the features are exactly what I needed.",
+    "avatar": "https://example.com/avatar1.jpg",
+    "isActive": true,
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+#### POST /testimonials/create/
 Create a new testimonial (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -759,10 +857,15 @@ Create a new testimonial (admin only).
 }
 ```
 
-#### PUT /testimonials/:id
+#### PUT /testimonials/{id}/update/
 Update a testimonial (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
+
+**Example Request:**
+```
+PUT /testimonials/550e8400-e29b-41d4-a716-446655440000/update/
+```
 
 **Request Body:**
 ```json
@@ -788,10 +891,15 @@ Update a testimonial (admin only).
 }
 ```
 
-#### DELETE /testimonials/:id
+#### DELETE /testimonials/{id}/delete/
 Delete a testimonial (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
+
+**Example Request:**
+```
+DELETE /testimonials/550e8400-e29b-41d4-a716-446655440000/delete/
+```
 
 **Response:**
 ```json
@@ -805,7 +913,7 @@ Delete a testimonial (admin only).
 
 ### Feedback
 
-#### POST /feedback
+#### POST /feedback/create/
 Submit feedback.
 
 **Request Body:**
@@ -826,16 +934,27 @@ Submit feedback.
     "type": "feature",
     "title": "Add dark mode",
     "description": "It would be great to have a dark mode option for better user experience during night time.",
-    "status": "open"
+    "status": "open",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
   },
   "message": "Feedback submitted successfully"
 }
 ```
 
-#### GET /feedback
+#### GET /feedback/
 Get all feedback (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
+
+**Query Parameters:**
+- `startDate` (optional): Filter by start date (YYYY-MM-DD)
+- `endDate` (optional): Filter by end date (YYYY-MM-DD)
+
+**Example Request:**
+```
+GET /feedback/?startDate=2024-01-01&endDate=2024-01-31
+```
 
 **Response:**
 ```json
@@ -844,13 +963,42 @@ Get all feedback (admin only).
   "data": [
     {
       "id": "uuid",
+      "userId": "uuid",
       "type": "feature",
       "title": "Add dark mode",
       "description": "It would be great to have a dark mode option.",
       "status": "open",
-      "createdAt": "2024-01-01T00:00:00Z"
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
     }
   ]
+}
+```
+
+#### GET /feedback/{id}/
+Get specific feedback by ID (admin only).
+
+**Headers:** `Authorization: Bearer <admin_token>`
+
+**Example Request:**
+```
+GET /feedback/550e8400-e29b-41d4-a716-446655440000/
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "userId": "uuid",
+    "type": "feature",
+    "title": "Add dark mode",
+    "description": "It would be great to have a dark mode option for better user experience during night time. This would help users who work late hours and prefer darker interfaces to reduce eye strain.",
+    "status": "open",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
 }
 ```
 
@@ -858,7 +1006,7 @@ Get all feedback (admin only).
 
 ### Statistics
 
-#### GET /stats/public
+#### GET /stats/public/
 Get public statistics (no authentication required).
 
 **Response:**
@@ -875,7 +1023,7 @@ Get public statistics (no authentication required).
 }
 ```
 
-#### GET /stats/admin
+#### GET /stats/admin/
 Get admin statistics (admin only).
 
 **Headers:** `Authorization: Bearer <admin_token>`
@@ -986,3 +1134,37 @@ Paginated responses include metadata:
   }
 }
 ```
+
+---
+
+## Special Features
+
+### Recurring Tasks
+Tasks with `is_recurring: true` are automatically reset to "todo" status based on their `recurring_type`:
+- **Daily**: Reset every day at 12:00 AM
+- **Weekly**: Reset every week at 12:00 AM
+- **Monthly**: Reset every month at 12:00 AM
+
+The system checks the `updated_at` timestamp and compares it with the next reset date.
+
+### Pending Task Highlighting
+Tasks are considered "pending" if their `updated_at` timestamp is before today's 12:00 AM. These tasks should be highlighted in the UI with red borders or text.
+
+### Task Status Rules
+Task status updates follow these rules:
+- From "todo": Can change to "in_progress" or "completed"
+- From "in_progress": Can change to "todo" or "completed"  
+- From "completed": Can change to "todo" or "in_progress"
+
+### Category Integration
+Tasks can be associated with categories through the `category_id` field. Categories provide:
+- Custom names for organization
+- Color coding for visual distinction
+- Task count tracking
+
+### Activity Timeline
+User profiles display activity timelines grouped by date, showing:
+- Task creation events
+- Task updates
+- Task completions
+- Formatted by day with timestamps

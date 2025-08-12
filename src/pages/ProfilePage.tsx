@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import toast from 'react-hot-toast';
-import { User, Camera, Target, CheckCircle, Clock } from 'lucide-react';
+import { User, Camera, Target, CheckCircle, Clock, Calendar } from 'lucide-react';
+import { format, parseISO, isSameDay } from 'date-fns';
 import { Layout } from '../components/common/Layout';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -27,9 +28,16 @@ interface UserStats {
   recentTasks: Task[];
 }
 
+interface ActivityItem {
+  id: string;
+  type: 'created' | 'updated' | 'completed';
+  taskTitle: string;
+  date: string;
+}
 export function ProfilePage() {
   const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const userStatsQuery = useApi<UserStats>();
   const updateProfileMutation = useApi<any>();
 
@@ -50,6 +58,77 @@ export function ProfilePage() {
   useEffect(() => {
     userStatsQuery.execute(() => userApi.getUserStats());
   }, []);
+  
+  useEffect(() => {
+    if (userStatsQuery.data?.recentTasks) {
+      generateActivities(userStatsQuery.data.recentTasks);
+    }
+  }, [userStatsQuery.data]);
+  
+  const generateActivities = (tasks: Task[]) => {
+    const activityItems: ActivityItem[] = [];
+    
+    tasks.forEach(task => {
+      // Add created activity
+      activityItems.push({
+        id: `${task.id}-created`,
+        type: 'created',
+        taskTitle: task.title,
+        date: task.createdAt,
+      });
+      
+      // Add updated activity if different from created
+      if (task.updatedAt !== task.createdAt) {
+        activityItems.push({
+          id: `${task.id}-updated`,
+          type: task.status === 'completed' ? 'completed' : 'updated',
+          taskTitle: task.title,
+          date: task.updatedAt,
+        });
+      }
+    });
+    
+    // Sort by date descending
+    activityItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    setActivities(activityItems);
+  };
+  
+  const groupActivitiesByDate = (activities: ActivityItem[]) => {
+    const grouped: { [key: string]: ActivityItem[] } = {};
+    
+    activities.forEach(activity => {
+      const dateKey = format(parseISO(activity.date), 'yyyy-MM-dd');
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(activity);
+    });
+    
+    return grouped;
+  };
+  
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'created':
+        return <Target className="h-4 w-4 text-blue-600" />;
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      default:
+        return <Clock className="h-4 w-4 text-yellow-600" />;
+    }
+  };
+  
+  const getActivityText = (activity: ActivityItem) => {
+    switch (activity.type) {
+      case 'created':
+        return `Task "${activity.taskTitle}" created`;
+      case 'completed':
+        return `Task "${activity.taskTitle}" completed`;
+      default:
+        return `Task "${activity.taskTitle}" updated`;
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -254,29 +333,40 @@ export function ProfilePage() {
             {/* Recent Tasks */}
             {stats?.recentTasks && stats.recentTasks.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Recent Activity
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                  Recent Activity Timeline
                 </h3>
-                <div className="space-y-3">
-                  {stats.recentTasks.slice(0, 5).map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded"
-                    >
-                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                        {task.title}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        task.status === 'completed' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                          : task.status === 'in_progress'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300'
-                      }`}>
-                        {task.status.replace('_', ' ')}
-                      </span>
+                <div className="space-y-6 max-h-96 overflow-y-auto">
+                  {Object.entries(groupActivitiesByDate(activities)).map(([dateKey, dayActivities]) => (
+                    <div key={dateKey} className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
+                        <Calendar className="h-4 w-4" />
+                        {format(parseISO(dateKey), 'MMM dd, yyyy')}
+                      </div>
+                      <div className="ml-6 space-y-2">
+                        {dayActivities.map((activity) => (
+                          <div
+                            key={activity.id}
+                            className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                          >
+                            {getActivityIcon(activity.type)}
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              {getActivityText(activity)}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+                              {format(parseISO(activity.date), 'HH:mm')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
+                  
+                  {activities.length === 0 && (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      No recent activity
+                    </div>
+                  )}
                 </div>
               </div>
             )}

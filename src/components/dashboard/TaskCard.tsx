@@ -1,6 +1,6 @@
 import React from 'react';
-import { Calendar, Flag, Clock, MoreVertical } from 'lucide-react';
-import { format } from 'date-fns';
+import { Calendar, Flag, Clock, MoreVertical, ChevronDown } from 'lucide-react';
+import { format, isBefore, startOfDay } from 'date-fns';
 import { Task } from '../../types';
 import { PRIORITY_COLORS, STATUS_COLORS } from '../../utils/constants';
 import { Button } from '../ui/Button';
@@ -14,12 +14,37 @@ interface TaskCardProps {
 
 export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) {
   const [showMenu, setShowMenu] = React.useState(false);
+  const [showStatusMenu, setShowStatusMenu] = React.useState(false);
+  
+  const isPending = (task: Task) => {
+    const today = startOfDay(new Date());
+    const updatedAt = new Date(task.updatedAt);
+    return isBefore(updatedAt, today);
+  };
+  
+  const getAvailableStatuses = (currentStatus: Task['status']) => {
+    const allStatuses = [
+      { value: 'todo', label: 'To Do' },
+      { value: 'in_progress', label: 'In Progress' },
+      { value: 'completed', label: 'Completed' },
+    ];
+    
+    return allStatuses.filter(status => status.value !== currentStatus);
+  };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className={`bg-white dark:bg-gray-800 border rounded-lg p-4 hover:shadow-md transition-shadow ${
+      isPending(task) 
+        ? 'border-red-300 dark:border-red-700' 
+        : 'border-gray-200 dark:border-gray-700'
+    }`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-1">
+          <h3 className={`font-medium mb-1 ${
+            isPending(task) 
+              ? 'text-red-900 dark:text-red-100' 
+              : 'text-gray-900 dark:text-white'
+          }`}>
             {task.title}
           </h3>
           {task.description && (
@@ -91,33 +116,34 @@ export function TaskCard({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
         </div>
       )}
 
-      <div className="flex gap-2">
-        {task.status !== 'todo' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onStatusChange(task, 'todo')}
-          >
-            To Do
-          </Button>
-        )}
-        {task.status !== 'in_progress' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onStatusChange(task, 'in_progress')}
-          >
-            In Progress
-          </Button>
-        )}
-        {task.status !== 'completed' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onStatusChange(task, 'completed')}
-          >
-            Complete
-          </Button>
+      <div className="relative">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowStatusMenu(!showStatusMenu)}
+          className="flex items-center gap-2"
+        >
+          Change Status
+          <ChevronDown className="h-3 w-3" />
+        </Button>
+        
+        {showStatusMenu && (
+          <div className="absolute top-full left-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+            <div className="py-1">
+              {getAvailableStatuses(task.status).map((status) => (
+                <button
+                  key={status.value}
+                  onClick={() => {
+                    onStatusChange(task, status.value as Task['status']);
+                    setShowStatusMenu(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  {status.label}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -59,6 +59,8 @@ export const statsApi = {
 export const testimonialsApi = {
   getTestimonials: () => api.get<ApiResponse<Testimonial[]>>('/testimonials/'),
   
+  getTestimonial: (id: string) => api.get<ApiResponse<Testimonial>>(`/testimonials/${id}/`),
+  
   createTestimonial: (testimonial: Partial<Testimonial>) =>
     api.post<ApiResponse<Testimonial>>('/testimonials/create/', testimonial),
   
@@ -124,7 +126,10 @@ export const feedbackApi = {
   submitFeedback: (feedback: Partial<Feedback>) =>
     api.post<ApiResponse<Feedback>>('/feedback/create/', feedback),
   
-  getFeedback: () => api.get<ApiResponse<Feedback[]>>('/feedback/'),
+  getFeedback: (params?: { startDate?: string; endDate?: string }) => 
+    api.get<ApiResponse<Feedback[]>>('/feedback/', { params }),
+  
+  getFeedbackById: (id: string) => api.get<ApiResponse<Feedback>>(`/feedback/${id}/`),
 };
 
 export const remindersApi = {

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { initRecurringTaskHandler } from './utils/recurringTasks';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -16,6 +17,11 @@ import { CategoriesPage } from './pages/CategoriesPage';
 import { RemindersPage } from './pages/RemindersPage';
 import { AdminFeedbackPage } from './pages/AdminFeedbackPage';
 import { ROUTES } from './utils/constants';
+
+// Initialize recurring task handler
+// React.useEffect(() => {
+//   initRecurringTaskHandler();
+// }, []);
 
 function ProtectedRoute({ 
   children, 

@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, AlertCircle, Bell, CheckSquare, Target } from 'lucide-react';
-import { format, isPast } from 'date-fns';
+import { Calendar, Clock, AlertCircle, Bell, CheckSquare, Target, Tag } from 'lucide-react';
+import { format, isPast, isBefore, startOfDay } from 'date-fns';
 import toast from 'react-hot-toast';
 import { Layout } from '../components/common/Layout';
 import { useApi } from '../hooks/useApi';
-import { tasksApi, remindersApi } from '../services/api';
+import { tasksApi, remindersApi, categoriesApi } from '../services/api';
 import { STATUS_COLORS, PRIORITY_COLORS } from '../utils/constants';
-import type { Task, Reminder } from '../types';
+import type { Task, Reminder, Category } from '../types';
 
 export function UserDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const tasksQuery = useApi<Task[]>();
   const dueTasks = useApi<Task[]>();
   const recurringTasks = useApi<Task[]>();
   const upcomingReminders = useApi<Reminder[]>();
+  const categoriesQuery = useApi<Category[]>();
 
   useEffect(() => {
     loadData();
@@ -23,11 +25,12 @@ export function UserDashboard() {
 
   const loadData = async () => {
     try {
-      const [tasksResponse, dueResponse, recurringResponse, remindersResponse] = await Promise.all([
+      const [tasksResponse, dueResponse, recurringResponse, remindersResponse, categoriesResponse] = await Promise.all([
         tasksQuery.execute(() => tasksApi.getTasks()),
         dueTasks.execute(() => tasksApi.getDueTasks()),
         recurringTasks.execute(() => tasksApi.getRecurringTasks()),
         upcomingReminders.execute(() => remindersApi.getUpcomingReminders()),
+        categoriesQuery.execute(() => categoriesApi.getCategories()),
       ]);
 
       if (tasksResponse.data.success) {
@@ -35,6 +38,9 @@ export function UserDashboard() {
       }
       if (remindersResponse.data.success) {
         setReminders(remindersResponse.data.data);
+      }
+      if (categoriesResponse.data.success) {
+        setCategories(categoriesResponse.data.data);
       }
     } catch (error) {
       toast.error('Failed to load data');
@@ -57,6 +63,17 @@ export function UserDashboard() {
 
   const isOverdue = (task: Task) => {
     return task.dueDate && isPast(new Date(task.dueDate)) && task.status !== 'completed';
+  };
+  
+  const isPending = (task: Task) => {
+    const today = startOfDay(new Date());
+    const updatedAt = new Date(task.updatedAt);
+    return isBefore(updatedAt, today);
+  };
+  
+  const getCategoryInfo = (categoryId?: string) => {
+    if (!categoryId) return null;
+    return categories.find(cat => cat.id === categoryId);
   };
 
   const tasksByStatus = {
@@ -170,80 +187,192 @@ export function UserDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Tasks */}
+        {/* Kanban Board */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* To Do Column */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Recent Tasks
-            </h2>
-            <div className="space-y-4">
-              {tasks.slice(0, 5).map((task) => (
-                <div
-                  key={task.id}
-                  className={`p-4 rounded-lg border transition-colors ${
-                    isOverdue(task) 
-                      ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/10' 
-                      : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {task.title}
-                    </h3>
-                    {isOverdue(task) && (
-                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                        Overdue
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[task.status]}`}>
-                      {task.status.replace('_', ' ')}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${PRIORITY_COLORS[task.priority]}`}>
-                      {task.priority}
-                    </span>
-                  </div>
-
-                  {task.dueDate && (
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Due: {format(new Date(task.dueDate), 'MMM dd, yyyy')}
+            <div className="flex items-center mb-4">
+              <Target className="h-5 w-5 text-blue-600 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                To Do ({tasksByStatus.todo.length})
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {tasksByStatus.todo.map((task) => {
+                const category = getCategoryInfo(task.categoryId);
+                return (
+                  <div
+                    key={task.id}
+                    className={`p-3 rounded-lg border transition-colors ${
+                      isOverdue(task) 
+                        ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/10' 
+                        : isPending(task)
+                        ? 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/10'
+                        : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                        {task.title}
+                      </h3>
+                      <div className="flex gap-1">
+                        <select
+                          className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800"
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task, e.target.value as Task['status'])}
+                        >
+                          <option value="in_progress">In Progress</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
                     </div>
-                  )}
+                    
+                    <div className="flex items-center gap-2 mb-2">
+                      {category && (
+                        <span 
+                          className="px-2 py-1 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: category.color }}
+                        >
+                          <Tag className="h-3 w-3 inline mr-1" />
+                          {category.name}
+                        </span>
+                      )}
+                    </div>
 
-                  <div className="flex gap-2">
-                    {task.status !== 'completed' && (
-                      <button
-                        onClick={() => handleStatusChange(task, 'completed')}
-                        className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
-                      >
-                        Mark Complete
-                      </button>
-                    )}
-                    {task.status === 'todo' && (
-                      <button
-                        onClick={() => handleStatusChange(task, 'in_progress')}
-                        className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
-                      >
-                        Start
-                      </button>
+                    {task.dueDate && (
+                      <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {format(new Date(task.dueDate), 'MMM dd')}
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
-
-              {tasks.length === 0 && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  No tasks yet. Create your first task to get started!
-                </div>
-              )}
+                );
+              })}
             </div>
           </div>
 
-          {/* Upcoming Reminders */}
+          {/* In Progress Column */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center mb-4">
+              <Clock className="h-5 w-5 text-yellow-600 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                In Progress ({tasksByStatus.in_progress.length})
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {tasksByStatus.in_progress.map((task) => {
+                const category = getCategoryInfo(task.categoryId);
+                return (
+                  <div
+                    key={task.id}
+                    className={`p-3 rounded-lg border transition-colors ${
+                      isOverdue(task) 
+                        ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/10' 
+                        : isPending(task)
+                        ? 'border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/10'
+                        : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                        {task.title}
+                      </h3>
+                      <div className="flex gap-1">
+                        <select
+                          className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800"
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task, e.target.value as Task['status'])}
+                        >
+                          <option value="todo">To Do</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-2">
+                      {category && (
+                        <span 
+                          className="px-2 py-1 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: category.color }}
+                        >
+                          <Tag className="h-3 w-3 inline mr-1" />
+                          {category.name}
+                        </span>
+                      )}
+                    </div>
+
+                    {task.dueDate && (
+                      <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {format(new Date(task.dueDate), 'MMM dd')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Completed Column */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center mb-4">
+              <CheckSquare className="h-5 w-5 text-green-600 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Completed ({tasksByStatus.completed.length})
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {tasksByStatus.completed.map((task) => {
+                const category = getCategoryInfo(task.categoryId);
+                return (
+                  <div
+                    key={task.id}
+                    className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                        {task.title}
+                      </h3>
+                      <div className="flex gap-1">
+                        <select
+                          className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800"
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task, e.target.value as Task['status'])}
+                        >
+                          <option value="todo">To Do</option>
+                          <option value="in_progress">In Progress</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-2">
+                      {category && (
+                        <span 
+                          className="px-2 py-1 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: category.color }}
+                        >
+                          <Tag className="h-3 w-3 inline mr-1" />
+                          {category.name}
+                        </span>
+                      )}
+                    </div>
+
+                    {task.dueDate && (
+                      <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {format(new Date(task.dueDate), 'MMM dd')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Upcoming Reminders */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 lg:col-span-2">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Upcoming Reminders
             </h2>

@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Bug, Lightbulb, Heart, Filter } from 'lucide-react';
+import { MessageSquare, Bug, Lightbulb, Heart, Filter, Eye } from 'lucide-react';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 import { Layout } from '../components/common/Layout';
 import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 import { useApi } from '../hooks/useApi';
 import { feedbackApi } from '../services/api';
 import type { Feedback } from '../types';
@@ -13,9 +16,14 @@ export function AdminFeedbackPage() {
   const [filters, setFilters] = useState({
     search: '',
     type: '',
+    startDate: '',
+    endDate: '',
   });
+  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const feedbackQuery = useApi<Feedback[]>();
+  const feedbackDetailQuery = useApi<Feedback>();
 
   useEffect(() => {
     loadFeedback();
@@ -27,7 +35,11 @@ export function AdminFeedbackPage() {
 
   const loadFeedback = async () => {
     try {
-      const response = await feedbackQuery.execute(() => feedbackApi.getFeedback());
+      const params = {
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+      };
+      const response = await feedbackQuery.execute(() => feedbackApi.getFeedback(params));
       if (response.data.success) {
         setFeedback(response.data.data);
       }
@@ -49,8 +61,34 @@ export function AdminFeedbackPage() {
     if (filters.type) {
       filtered = filtered.filter(item => item.type === filters.type);
     }
+    
+    if (filters.startDate) {
+      filtered = filtered.filter(item => 
+        new Date(item.createdAt) >= new Date(filters.startDate)
+      );
+    }
+    
+    if (filters.endDate) {
+      filtered = filtered.filter(item => 
+        new Date(item.createdAt) <= new Date(filters.endDate)
+      );
+    }
 
     setFilteredFeedback(filtered);
+  };
+  
+  const handleViewFeedback = async (feedbackId: string) => {
+    try {
+      const response = await feedbackDetailQuery.execute(() => 
+        feedbackApi.getFeedbackById(feedbackId)
+      );
+      if (response.data.success) {
+        setSelectedFeedback(response.data.data);
+        setIsViewModalOpen(true);
+      }
+    } catch (error) {
+      toast.error('Failed to load feedback details');
+    }
   };
 
   const getTypeIcon = (type: string) => {
@@ -134,6 +172,21 @@ export function AdminFeedbackPage() {
               <option value="bug">Bug Reports</option>
               <option value="feature">Feature Requests</option>
             </select>
+            
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                placeholder="Start Date"
+                value={filters.startDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+              <Input
+                type="date"
+                placeholder="End Date"
+                value={filters.endDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
           </div>
         </div>
 
@@ -154,6 +207,9 @@ export function AdminFeedbackPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -179,7 +235,17 @@ export function AdminFeedbackPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      {format(new Date(), 'MMM dd, yyyy')}
+                      {format(new Date(item.createdAt), 'MMM dd, yyyy')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewFeedback(item.id)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -194,6 +260,45 @@ export function AdminFeedbackPage() {
             </div>
           )}
         </div>
+        
+        {/* View Feedback Modal */}
+        <Modal
+          isOpen={isViewModalOpen}
+          onClose={() => {
+            setIsViewModalOpen(false);
+            setSelectedFeedback(null);
+          }}
+          title="Feedback Details"
+          size="lg"
+        >
+          {selectedFeedback && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                {getTypeIcon(selectedFeedback.type)}
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(selectedFeedback.type)}`}>
+                  {selectedFeedback.type}
+                </span>
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">
+                  {selectedFeedback.status}
+                </span>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  {selectedFeedback.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {selectedFeedback.description}
+                </p>
+              </div>
+              
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                <p>Submitted: {format(new Date(selectedFeedback.createdAt), 'MMM dd, yyyy HH:mm')}</p>
+                <p>Updated: {format(new Date(selectedFeedback.updatedAt), 'MMM dd, yyyy HH:mm')}</p>
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </Layout>
   );
