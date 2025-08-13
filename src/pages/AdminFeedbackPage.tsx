@@ -27,29 +27,34 @@ export function AdminFeedbackPage() {
 
   useEffect(() => {
     loadFeedback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    filterFeedback();
+    if (feedback.length > 0) filterFeedback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedback, filters]);
 
   const loadFeedback = async () => {
     try {
-      const params = {
-        ...(filters.startDate && { startDate: filters.startDate }),
-        ...(filters.endDate && { endDate: filters.endDate }),
-      };
+      const params: Record<string, string> = {};
+      if (filters.startDate) params.startDate = filters.startDate;
+      if (filters.endDate) params.endDate = filters.endDate;
+
       const response = await feedbackQuery.execute(() => feedbackApi.getFeedback(params));
-      if (response.data.success) {
-        setFeedback(response.data.data);
+      if (response?.data?.success) {
+        setFeedback(response.data.data || []);
+      } else {
+        toast.error('Failed to fetch feedback');
       }
     } catch (error) {
-      console.error('Failed to load feedback');
+      console.error('Failed to load feedback', error);
+      toast.error('Error loading feedback');
     }
   };
 
   const filterFeedback = () => {
-    let filtered = feedback;
+    let filtered = [...feedback];
 
     if (filters.search) {
       filtered = filtered.filter(item =>
@@ -61,30 +66,33 @@ export function AdminFeedbackPage() {
     if (filters.type) {
       filtered = filtered.filter(item => item.type === filters.type);
     }
-    
+
     if (filters.startDate) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         new Date(item.createdAt) >= new Date(filters.startDate)
       );
     }
-    
+
     if (filters.endDate) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         new Date(item.createdAt) <= new Date(filters.endDate)
       );
     }
 
     setFilteredFeedback(filtered);
   };
-  
+
   const handleViewFeedback = async (feedbackId: string) => {
     try {
-      const response = await feedbackDetailQuery.execute(() => 
+      const response = await feedbackDetailQuery.execute(() =>
         feedbackApi.getFeedbackById(feedbackId)
       );
-      if (response.data.success) {
+      console.log('Feedback details response:', response);
+      if (response?.data?.success) {
         setSelectedFeedback(response.data.data);
         setIsViewModalOpen(true);
+      } else {
+        toast.error('Failed to fetch feedback details');
       }
     } catch (error) {
       toast.error('Failed to load feedback details');
@@ -97,6 +105,8 @@ export function AdminFeedbackPage() {
         return <Bug className="h-5 w-5 text-red-600" />;
       case 'feature':
         return <Lightbulb className="h-5 w-5 text-yellow-600" />;
+      case 'feedback':
+        return <MessageSquare className="h-5 w-5 text-blue-600" />;
       default:
         return <Heart className="h-5 w-5 text-pink-600" />;
     }
@@ -108,9 +118,17 @@ export function AdminFeedbackPage() {
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       case 'feature':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'feedback':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       default:
         return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400';
     }
+  };
+
+  const safeFormat = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? '' : format(date, 'MMM dd, yyyy');
   };
 
   return (
@@ -154,14 +172,14 @@ export function AdminFeedbackPage() {
             <Filter className="h-5 w-5 text-gray-500" />
             <span className="font-medium text-gray-900 dark:text-white">Filters</span>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               placeholder="Search feedback..."
               value={filters.search}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
             />
-            
+
             <select
               className="h-12 px-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={filters.type}
@@ -172,17 +190,15 @@ export function AdminFeedbackPage() {
               <option value="bug">Bug Reports</option>
               <option value="feature">Feature Requests</option>
             </select>
-            
+
             <div className="flex gap-2">
               <Input
                 type="date"
-                placeholder="Start Date"
                 value={filters.startDate}
                 onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
               />
               <Input
                 type="date"
-                placeholder="End Date"
                 value={filters.endDate}
                 onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
               />
@@ -196,21 +212,11 @@ export function AdminFeedbackPage() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -225,17 +231,15 @@ export function AdminFeedbackPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {item.title}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{item.title}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" title={item.description}>
                       <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
                         {item.description}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      {format(new Date(item.createdAt), 'MMM dd, yyyy')}
+                      {safeFormat(item.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Button
@@ -260,7 +264,7 @@ export function AdminFeedbackPage() {
             </div>
           )}
         </div>
-        
+
         {/* View Feedback Modal */}
         <Modal
           isOpen={isViewModalOpen}
@@ -282,19 +286,16 @@ export function AdminFeedbackPage() {
                   {selectedFeedback.status}
                 </span>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   {selectedFeedback.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {selectedFeedback.description}
-                </p>
+                <p className="text-gray-600 dark:text-gray-400">{selectedFeedback.description}</p>
               </div>
-              
+
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                <p>Submitted: {format(new Date(selectedFeedback.createdAt), 'MMM dd, yyyy HH:mm')}</p>
-                <p>Updated: {format(new Date(selectedFeedback.updatedAt), 'MMM dd, yyyy HH:mm')}</p>
+                <p>Submitted: {safeFormat(selectedFeedback.created_at)}</p>
               </div>
             </div>
           )}
